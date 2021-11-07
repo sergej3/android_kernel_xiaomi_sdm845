@@ -774,8 +774,17 @@ static void status_change_work(struct work_struct *work)
 	union power_supply_propval prop = {0, };
 	int reschedule_dynamic_fv_work_us = 0;
 
-	if (!is_batt_available(chip))
+	if (!is_batt_available(chip)) {
 		goto exit_work;
+	}
+
+	/* skip jeita and step if not charging */
+	rc = power_supply_get_property(chip->batt_psy,
+		POWER_SUPPLY_PROP_STATUS, &prop);
+	if (prop.intval != POWER_SUPPLY_STATUS_CHARGING) {
+		__pm_relax(chip->step_chg_ws);
+		return;
+	}
 
 	handle_battery_insertion(chip);
 
