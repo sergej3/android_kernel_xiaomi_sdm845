@@ -2325,6 +2325,7 @@ int smblib_get_prop_batt_charge_done(struct smb_charger *chg,
 					union power_supply_propval *val)
 {
 	int rc;
+	union power_supply_propval pval = {0, };
 	u8 stat;
 
 	rc = smblib_read(chg, BATTERY_CHARGER_STATUS_1_REG, &stat);
@@ -2339,6 +2340,14 @@ int smblib_get_prop_batt_charge_done(struct smb_charger *chg,
 
 	/* if charge is done, clear the chg_awake_voter */
 	if (val->intval == 1) {
+		vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
+		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
+	}
+
+	rc = smblib_get_prop_batt_status(chg, &pval);
+	
+	/* if not charging, also clear the chg_awake_voter */
+	if (pval.intval != POWER_SUPPLY_STATUS_CHARGING) {
 		vote(chg->awake_votable, CHG_AWAKE_VOTER, false, 0);
 		vote(chg->awake_votable, DC_AWAKE_VOTER, false, 0);
 	}
